@@ -211,7 +211,11 @@ sub massage_photo {
 	push @args, "-rotate 270"
     }
 
-    push @args, "-geometry 384x -colorspace Gray";
+    if ($w > 384){
+	push @args, "-geometry 384x";
+    }
+
+    push @args, "-colorspace Gray";
 
     # TO DO: dithering...
 
@@ -241,6 +245,10 @@ sub massage_photo {
     my $m_fname = $md5sum . ".jpg";
 
     my $massaged = File::Spec->catfile($m_root, $m_fname);
+
+    # print $tmp_file . "\n";
+    # print $massaged . "\n";
+
     move($tmp_file, $massaged);
 
     return $massaged;
@@ -251,7 +259,7 @@ sub generate_html {
     my $photo = shift;
     my $from = shift;
 
-    my $root_fs = $cfg->param('littleprinter.root_filesystem');
+    my $root_fs = $cfg->param('littleprinter.root_fs');
     my $root_url = $cfg->param('littleprinter.root_url');
 
     my ($w, $h) = imgsize($photo);
@@ -264,6 +272,9 @@ sub generate_html {
 	return undef;
     }
 
+    # print $photo . "\n";
+    # print $path . "\n";
+
     copy($photo, $path);
 
     my $url = $root_url . $fname;
@@ -273,7 +284,7 @@ sub generate_html {
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
     $html .= '<br /><br />from <strong>' . $from . '</strong>';
 
-    print $html;
+    # print $html;
     return $html;
 }
 
