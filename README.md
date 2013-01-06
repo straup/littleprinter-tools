@@ -15,8 +15,8 @@ Interwebs.
 This means you'll need to have a website. You'll need to have a website on the
 same machine that the upload-by-email handler is on (and can write files
 to). This is not ideal but test messages sent to the Direct Print API containing
-even small images encoded as data blobs always seem to make the BERG Cloud
-servers cry so this will have to do for now.
+even small images encoded as data blobs (rather than pointers to URLs) always
+seem to make the BERG Cloud servers cry so this will have to do for now.
 
 It can be run from the command line or (more likely) as an upload-by-email style
 handler or callback that you'll need to configure yourself.
