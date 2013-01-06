@@ -151,7 +151,7 @@ sub main {
 		      min_level => 'debug',
 		      filename  => $opts{'l'},
 		      mode      => 'append' ,
-		      size      => 1024,
+		      size      => 1024 * 1024,
 		      max       => 6,
 		  ));
     }
@@ -250,11 +250,25 @@ sub massage_photo {
 
     my $tmp_file = File::Spec->catfile($root, $name);
 
+    # First, sort out the correct orientation
+
+    my $cmd = "$convert -auto-orient $original $original";
+    $log->debug("$cmd\n");
+
+    if (system($cmd)){
+	$log->warning("failed to convert image, $!\n");
+	return undef;
+    }
+
+    # Now figure out if we're in portrait or landscape mode
+
     my ($w, $h) = imgsize($original);
 
-    my @args = (
-	"-auto-orient",
-	);
+    my @args = ();
+
+    if ($w > $h){
+	push @args, "-rotate 270";
+    }
 
     if ($w > 384){
 	push @args, "-geometry 384x";
