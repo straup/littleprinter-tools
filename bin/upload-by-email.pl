@@ -104,7 +104,7 @@ use Config::Simple;
 
 use Log::Dispatch;
 use Log::Dispatch::Screen;
-use Log::Dispatch::File;
+use Log::Dispatch::FileRotate;
 
 use File::Spec;
 use File::Basename;
@@ -146,11 +146,13 @@ sub main {
 
     if ($opts{'l'}){
 
-	$log->add(Log::Dispatch::File->new(
+	$log->add(Log::Dispatch::FileRotate->new(
 		      name      => 'logfile',
 		      min_level => 'debug',
-		      mode      => '>>',
 		      filename  => $opts{'l'},
+		      mode      => 'append' ,
+		      size      => 1024,
+		      max       => 6,
 		  ));
     }
 
@@ -167,7 +169,7 @@ sub main {
 	$txt .= $_;
     }
 
-    my ($original_photo, $from) = parse_email($cfg, $txt);
+    my ($original_photo, $from, $subject) = parse_email($cfg, $txt);
 
     if (! $original_photo){
 	return 0;
@@ -183,7 +185,7 @@ sub main {
 
     $log->info("massaged into $massaged_photo: OK\n");
 
-    my $html = generate_html($cfg, $massaged_photo, $from);
+    my $html = generate_html($cfg, $massaged_photo, $from, $subject);
 
     my $ok = ($html) ? send_html($cfg, $html) : 0;
 
@@ -226,8 +228,9 @@ sub parse_email {
     }
 
     my $from = $email->{'header'}->header('From');
+    my $subject = $email->{'header'}->header('Subject');
 
-    return ($photo, $from);
+    return ($photo, $from, $subject);
 }
 
 sub massage_photo {
@@ -249,13 +252,9 @@ sub massage_photo {
 
     my ($w, $h) = imgsize($original);
 
-    my @args = ();
-
-    # TO DO: check rotation hoo-hah in EXIF... sad face
-
-    if ($w > $h){
-	push @args, "-rotate 270"
-    }
+    my @args = (
+	"-auto-orient",
+	);
 
     if ($w > 384){
 	push @args, "-geometry 384x";
@@ -310,6 +309,7 @@ sub generate_html {
     my $cfg = shift;
     my $photo = shift;
     my $from = shift;
+    my $subject = shift;
 
     my $root_fs = $cfg->param('littleprinter.root_fs');
     my $root_url = $cfg->param('littleprinter.root_url');
@@ -331,12 +331,20 @@ sub generate_html {
 	return undef;
     }
 
+    chmod 0644, $path;
+
     my $url = $root_url . $fname;
 
     $from = encode_entities($from);
 
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
-    $html .= '<br /><br />from <strong>' . $from . '</strong>';
+    $html .= '<br /><br />';
+
+    if ($subject =~ /\w+/){
+	$html .= "<q>$subject</q>, from ";
+    }
+
+    $html .= '<strong>' . $from . '</strong>';
 
     $log->debug($html . "\n");
     return $html;
