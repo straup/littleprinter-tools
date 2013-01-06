@@ -43,6 +43,13 @@ B<-c> is for "config"
 The path to a config file containing your BERG Cloud direct print code and other
 related information.
 
+=item *
+
+B<-l> is for "logfile" (optional)
+
+The path to a log file where verbose status information will be written. Good
+for debugging.
+
 =back
 
 =head1 CONFIG FILE
@@ -69,6 +76,10 @@ L<Config::Simple>
 
 =item
 
+L<Log::Dispatch>
+
+=item
+
 L<Image::Size>
 
 =item
@@ -91,6 +102,10 @@ use warnings;
 use Getopt::Std;
 use Config::Simple;
 
+use Log::Dispatch;
+use Log::Dispatch::Screen;
+use Log::Dispatch::File;
+
 use File::Spec;
 use File::Basename;
 use File::Temp;
@@ -104,6 +119,10 @@ use HTML::Entities;
 use LWP::UserAgent;
 use HTTP::Request;
 
+# mmmm.... globals
+
+my $log;
+
 {
     &main();
     exit;
@@ -111,13 +130,34 @@ use HTTP::Request;
 
 sub main {
 
+    $log = Log::Dispatch->new();
+
+    $log->add(Log::Dispatch::Screen->new(
+		  name      => 'screen',
+		  min_level => 'info',
+	      ));
+
+    #
+
     my $txt = '';
     my %opts = ();
 
-    getopts('c:', \%opts);
+    getopts('c:l:', \%opts);
+
+    if ($opts{'l'}){
+
+	$log->add(Log::Dispatch::File->new(
+		      name      => 'logfile',
+		      min_level => 'debug',
+		      mode      => '>>',
+		      filename  => $opts{'l'},
+		  ));
+    }
+
+    $log->debug("\n\ngetting started at " . time() . "\n-----------\n");
 
     if (! -f $opts{'c'}){
-	warn "Not a valid config file";
+	$log->warning("Not a valid config file\n");
 	return 0;
     }
 	
@@ -133,11 +173,15 @@ sub main {
 	return 0;
     }
 
+    $log->info("parsed $original_photo from '$from': OK\n");
+
     my $massaged_photo = massage_photo($cfg, $original_photo);
 
     if (! $massaged_photo){
 	return 0;
     }
+
+    $log->info("massaged into $massaged_photo: OK\n");
 
     my $html = generate_html($cfg, $massaged_photo, $from);
 
@@ -146,7 +190,7 @@ sub main {
     unlink($original_photo);
     unlink($massaged_photo);
 
-    print "send: $ok\n";
+    $log->info("send: $ok\n");
     return $ok;
 }
 
@@ -177,7 +221,7 @@ sub parse_email {
     }
 
     if (! $photo){
-	warn "Can't find photo";
+	$log->warning("Can't find photo\n");
 	return undef;
     }
 
@@ -190,7 +234,7 @@ sub massage_photo {
     my $cfg = shift;
     my $original = shift;
 
-    my $convert = "convert";
+    my $convert = "/usr/local/bin/convert";
 
     if ($cfg->param('littleprinter.use_graphicsmagick')){
 	$convert = "gm convert";
@@ -224,19 +268,22 @@ sub massage_photo {
     my $str_args = join(" ", @args);
 
     my $cmd = "$convert $str_args $original $tmp_file";
+    $log->debug("$cmd\n");
 
     if (system($cmd)){
-	warn $!;
+	$log->warning("failed to convert image, $!\n");
 	return undef;
     }
 
     ($w, $h) = imgsize($tmp_file);
 
     if ($h > 800){
+
 	my $cmd = "$convert -geometry x800 $tmp_file $tmp_file";
+	$log->debug("$cmd\n");
 
 	if (system($cmd)){
-	    warn $!;
+	    $log->warning("failed to convert image, $!\n");
 	    return undef;
 	}
     }
@@ -248,10 +295,13 @@ sub massage_photo {
 
     my $massaged = File::Spec->catfile($m_root, $m_fname);
 
-    # print $tmp_file . "\n";
-    # print $massaged . "\n";
+    $log->debug("tmp file: $tmp_file\n");
+    $log->debug("massaged: $massaged\n");
 
-    move($tmp_file, $massaged);
+    if (! move($tmp_file, $massaged)){
+	$log->error("failed to move tmp file, $!\n");
+	return undef;
+    }
 
     return $massaged;
 }
@@ -270,14 +320,16 @@ sub generate_html {
     my $path = File::Spec->catfile($root_fs, $fname);
 
     if (-f $path){
-	warn "$path already exists, which means it's been sent already";
+	$log->warning("$path already exists, which means it's been sent already\n");
 	return undef;
     }
 
-    # print $photo . "\n";
-    # print $path . "\n";
+    $log->debug("copy massaged to $path\n");
 
-    copy($photo, $path);
+    if (! copy($photo, $path)){
+	$log->error("failed to copy massaged file, $!\n");
+	return undef;
+    }
 
     my $url = $root_url . $fname;
 
@@ -286,7 +338,7 @@ sub generate_html {
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
     $html .= '<br /><br />from <strong>' . $from . '</strong>';
 
-    # print $html;
+    $log->debug($html . "\n");
     return $html;
 }
 
@@ -305,7 +357,7 @@ sub send_html {
     my $rsp = $ua->request($req);
 
     if ($rsp->code != 200){
-	warn 'BERGCLOUD IS SAD: ' . $rsp->code . ', ' . $rsp->message;
+	$log->warning('BERGCLOUD IS SAD: ' . $rsp->code . ', ' . $rsp->message . '\n');
 	return 0;
     }
 
