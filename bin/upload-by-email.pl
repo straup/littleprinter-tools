@@ -267,8 +267,9 @@ sub generate_html {
     $from = encode_entities($from);
 
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
-    $html .= '<div style="margin-top:10px;font-family:sans-serif;">from <strong>' . $from . '</strong></div>';
+    $html .= '<br /><br />from <strong>' . $from . '</strong>';
 
+    print $html;
     return $html;
 }
 
