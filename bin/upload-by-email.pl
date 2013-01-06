@@ -13,8 +13,24 @@ upload-by-email.pl
 upload-by-email is a simple Perl script that parses an email containing a
 photo attachment and sends it to Little Printer using the Direct Print API.
 
+Photos are resized and converted to greyscale (and rotated if they are wider
+than they are tall) and written to a user-defined folder that can be reached on
+the Interwebs.
+
+This means you'll need to have a website. You'll need to have a website on the
+same machine that the upload-by-email handler is on (and can write files to).
+
+This is not ideal but test messages sent to the Direct Print API containing even
+small images encoded as data blobs always seem to make the BERG Cloud servers
+cry so this will have to do for now.
+
 It can be run from the command line or (more likely) as an upload-by-email style
 handler or callback that you'll need to configure yourself.
+
+=head1 ACCESS CONTROL
+
+There is currently no access control for this tool. It is assumed that you will
+create suitably "secret" email addresses for the people you trust to use it.
 
 =head1 COMMAND LINE OPTIONS
 
@@ -35,8 +51,8 @@ Config variables are defined in a plain vanilla '.ini' file.
 
  [littleprinter]
  direct_print_code=YOUR_DIRECT_PRINT_CODE
- root_fs=
- root_url=
+ root_fs=/path/to/example-dot-com/a-url-that-bergcloud-can-access/
+ root_url=http://example.com/a-url-that-bergcloud-can-access/
  use_graphicsmagick=0
 
 =head1 DEPENDENCIES
@@ -294,6 +310,10 @@ sub md5sum {
 }
 
 __END__
+
+# Would that we could just send the photo as a giant blob of base64 encoded text
+# but it seems to be the sort of thing to make LP cry like a little baby...
+# (20130106/straup)
 
 sub generate_html_b64 {
     my $photo = shift;
