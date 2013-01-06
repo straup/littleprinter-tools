@@ -1,5 +1,70 @@
 #!/usr/bin/env perl
 
+=head1 NAME
+
+upload-by-email.pl
+
+=head1 SYNOPSIS
+
+ $> ./upload-by-email.pl -c littleprinter.cfg < some-message.eml
+
+=head1 DESCRIPTION
+
+upload-by-email is a simple Perl script that parses an email containing a
+photo attachment and sends it to Little Printer using the Direct Print API.
+
+It can be run from the command line or (more likely) as an upload-by-email style
+handler or callback that you'll need to configure yourself.
+
+=head1 COMMAND LINE OPTIONS
+
+=over 4
+
+=item *
+
+B<-c> is for "config"
+
+The path to a config file containing your BERG Cloud direct print code and other
+related information.
+
+=back
+
+=head1 CONFIG FILE
+
+Config variables are defined in a plain vanilla '.ini' file.
+
+ [littleprinter]
+ direct_print_code=YOUR_DIRECT_PRINT_CODE
+ root_fs=
+ root_url=
+ use_graphicsmagick=0
+
+=head1 DEPENDENCIES
+
+=over 4
+
+=item
+
+L<Email::MIME>
+
+=item
+
+L<Config::Simple>
+
+=item
+
+L<Image::Size>
+
+=back
+
+=head1 LICENSE
+
+Copyright (c) 2013, Aaron Straup Cope. All Rights Reserved.
+
+This is free software, you may use it and distribute it under the same terms as Perl itself.
+
+=cut
+
 use strict;
 use warnings;
 
@@ -139,7 +204,7 @@ sub massage_photo {
 	return undef;
     }
 
-    my ($w, $h) = imgsize($tmp_file);
+    ($w, $h) = imgsize($tmp_file);
 
     if ($h > 800){
 	my $cmd = "$convert -geometry x800 $tmp_file $tmp_file";
@@ -152,10 +217,10 @@ sub massage_photo {
 
     my $md5sum = md5sum($tmp_file);
 
-    my $root = File::Basename::dirname($tmp_file);
-    my $fname = $md5sum . ".jpg";
+    my $m_root = File::Basename::dirname($tmp_file);
+    my $m_fname = $md5sum . ".jpg";
 
-    my $massaged = File::Spec->catfile($root, $fname);
+    my $massaged = File::Spec->catfile($m_root, $m_fname);
     move($tmp_file, $massaged);
 
     return $massaged;
