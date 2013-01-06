@@ -71,6 +71,10 @@ L<Config::Simple>
 
 L<Image::Size>
 
+=item
+
+L<ImageMagick> (or L<GraphicsMagick>)
+
 =back
 
 =head1 LICENSE
