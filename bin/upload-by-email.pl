@@ -207,6 +207,8 @@ sub massage_photo {
 
     my @args = ();
 
+    # TO DO: check rotation hoo-hah in EXIF... sad face
+
     if ($w > $h){
 	push @args, "-rotate 270"
     }
