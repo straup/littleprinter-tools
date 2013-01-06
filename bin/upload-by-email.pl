@@ -165,6 +165,8 @@ sub main {
 	
     my $cfg = Config::Simple->new($opts{'c'});
 
+    # TO DO: check max file size...
+
     while (<STDIN>){
 	$txt .= $_;
     }
