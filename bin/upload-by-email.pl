@@ -99,6 +99,7 @@ This is free software, you may use it and distribute it under the same terms as 
 use strict;
 use warnings;
 
+use English;
 use Getopt::Std;
 use Config::Simple;
 
@@ -278,11 +279,9 @@ sub massage_photo {
 
     push @args, "-colorspace Gray";
 
-    # TO DO: dithering...
-
     my $str_args = join(" ", @args);
 
-    my $cmd = "$convert $str_args $original $tmp_file";
+    $cmd = "$convert $str_args $original $tmp_file";
     $log->debug("$cmd\n");
 
     if (system($cmd)){
@@ -303,6 +302,10 @@ sub massage_photo {
 	}
     }
 
+    if ($cfg->param('littleprinter.dither_image')){
+	dither_image($cfg, $tmp_file);
+    }
+
     my $md5sum = md5sum($tmp_file);
 
     my $m_root = File::Basename::dirname($tmp_file);
@@ -319,6 +322,31 @@ sub massage_photo {
     }
 
     return $massaged;
+}
+
+sub dither_image {
+    my $cfg = shift;
+    my $path = shift;
+
+    my $whoami = File::Spec->rel2abs($PROGRAM_NAME);
+    my $root = dirname($whoami);
+
+    my $dither = File::Spec->catfile($root, "dither.py");
+
+    if (! -f $dither){
+	$log->warning("missing dither program!");
+	return 0;
+    }
+
+    my @args = ($dither, $path, $path);
+    my $status = system(@args);
+    
+    if ($status){
+	$log->warning("failed to dither image: $?");
+	return 0;
+    }
+
+    return 1;
 }
 
 sub generate_html {
