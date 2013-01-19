@@ -389,7 +389,7 @@ sub generate_html {
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
     $html .= '<br /><br />';
 
-    if ($subject =~ /\w+/){
+    if (($subject) && ($subject =~ /\w+/)){
 	$html .= "<q>$subject</q>, from ";
     }
 
