@@ -254,6 +254,7 @@ sub massage_photo {
     my $tmp_file = File::Spec->catfile($root, $name);
 
     # First, sort out the correct orientation
+    # NOTE: -auto-orient is not supported by graphicsmagick...
 
     my $cmd = "$convert -auto-orient $original $original";
     $log->debug("$cmd\n");
@@ -267,24 +268,24 @@ sub massage_photo {
 
     my ($w, $h) = imgsize($original);
 
-    my @args = ();
+    my @args = ($convert);
 
     if ($w > $h){
-	push @args, "-rotate 270";
+	push @args, "-rotate", "270";
     }
 
     if ($w > 384){
-	push @args, "-geometry 384x";
+	push @args, "-geometry", "384x";
     }
 
-    push @args, "-colorspace Gray";
+    push @args, "-colorspace", "Gray";
 
-    my $str_args = join(" ", @args);
+    push @args, $original;
+    push @args, $tmp_file;
 
-    $cmd = "$convert $str_args $original $tmp_file";
-    $log->debug("$cmd\n");
+    $log->debug(join(" ", @args) . "\n");
 
-    if (system($cmd)){
+    if (system(@args)){
 	$log->warning("failed to convert image, $!\n");
 	return undef;
     }
@@ -293,17 +294,19 @@ sub massage_photo {
 
     if ($h > 800){
 
-	my $cmd = "$convert -geometry x800 $tmp_file $tmp_file";
-	$log->debug("$cmd\n");
+	# Note: we are redefining @args from scratch
 
-	if (system($cmd)){
+	@args = ($convert, "-geometry", "x800", $tmp_file, $tmp_file);
+	$log->debug(join(" ", @args) . "\n");
+
+	if (system(@args)){
 	    $log->warning("failed to convert image, $!\n");
 	    return undef;
 	}
     }
 
     if ($cfg->param('littleprinter.dither_image')){
-	dither_image($cfg, $tmp_file);
+	my $ok = dither_image($cfg, $tmp_file);
     }
 
     my $md5sum = md5sum($tmp_file);
@@ -323,6 +326,8 @@ sub massage_photo {
 
     return $massaged;
 }
+
+# TO DO: a pure perl version to get around requiring PIL...
 
 sub dither_image {
     my $cfg = shift;
