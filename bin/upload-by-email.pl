@@ -61,6 +61,24 @@ Config variables are defined in a plain vanilla '.ini' file.
  root_fs=/path/to/example-dot-com/a-url-that-bergcloud-can-access/
  root_url=http://example.com/a-url-that-bergcloud-can-access/
  use_graphicsmagick=0
+ dither_image=0
+
+=head2 A few things to note
+
+=over 4
+
+=item *
+
+Unlike ImageMagick, GraphicsMagick does not support the '-auto-orient' flag which
+is sad. I haven't figured out what to do about that yet.
+
+=item *
+
+The 'dither_image' config variable should be considered experimental for the time
+being. It uses the 'dither.py' script which is part of littleprinter-tools but 
+requires that you have a copy of Python's PIL imaging libraries installed.
+
+=back 
 
 =head1 DEPENDENCIES
 
@@ -81,6 +99,14 @@ L<Log::Dispatch>
 =item
 
 L<Image::Size>
+
+=item
+
+L<Date::Parse>
+
+=item
+
+L<Date::Format>
 
 =item
 
@@ -116,6 +142,9 @@ use Email::MIME;
 use Digest::MD5;
 use Image::Size;
 use HTML::Entities;   
+
+use Date::Parse;
+use Date::Format;
 
 use LWP::UserAgent;
 use HTTP::Request;
@@ -172,7 +201,7 @@ sub main {
 	$txt .= $_;
     }
 
-    my ($original_photo, $from, $subject) = parse_email($cfg, $txt);
+    my ($original_photo, $from, $subject, $date) = parse_email($cfg, $txt);
 
     if (! $original_photo){
 	return 0;
@@ -188,7 +217,7 @@ sub main {
 
     $log->info("massaged into $massaged_photo: OK\n");
 
-    my $html = generate_html($cfg, $massaged_photo, $from, $subject);
+    my $html = generate_html($cfg, $massaged_photo, $from, $subject, $date);
 
     my $ok = ($html) ? send_html($cfg, $html) : 0;
 
@@ -233,7 +262,11 @@ sub parse_email {
     my $from = $email->{'header'}->header('From');
     my $subject = $email->{'header'}->header('Subject');
 
-    return ($photo, $from, $subject);
+    my $date = $email->{'header'}->header('Date');
+    my $ts = Date::Parse::str2time($date);
+    my $mdy = Date::Format::time2str("%h %e, %Y", $ts);
+
+    return ($photo, $from, $subject, $mdy);
 }
 
 sub massage_photo {
@@ -359,6 +392,7 @@ sub generate_html {
     my $photo = shift;
     my $from = shift;
     my $subject = shift;
+    my $date = shift;
 
     my $root_fs = $cfg->param('littleprinter.root_fs');
     my $root_url = $cfg->param('littleprinter.root_url');
@@ -389,11 +423,13 @@ sub generate_html {
     my $html = '<img src="' . $url .'" height="' . $h . '" width="' . $w . '" class="dither" />';
     $html .= '<br /><br />';
 
+    $html .= " $date - ";
+
     if (($subject) && ($subject =~ /\w+/)){
-	$html .= "<q>$subject</q>, from ";
+	$html .= "<q>$subject</q>";
     }
 
-    $html .= '<strong>' . $from . '</strong>';
+    $html .= ' from <strong>' . $from . '</strong>';
 
     $log->debug($html . "\n");
     return $html;
