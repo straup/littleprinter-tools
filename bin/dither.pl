@@ -39,7 +39,7 @@ sub dither {
 
 	for (my $x=0; $x < $width; $x++){
 
-	    my $px = $im->getpixel(x => $x, y => $y, type => '8bit');
+	    my $px = $im->getpixel(x => $x, y => $y);
 	    my @c = $px->rgba();
 
 	    my $old = grayscale(@c);
@@ -57,7 +57,7 @@ sub dither {
 		my $nx = $nxy->[0];
 		my $ny = $nxy->[1];
 
-		my $npx = $im->getpixel(x => $nx, y => $ny, type => '8bit');
+		my $npx = $im->getpixel(x => $nx, y => $ny);
 
 		if (! $npx){
 		    next;
@@ -84,6 +84,8 @@ sub grayscale {
     # See also:
     # http://www.johndcook.com/blog/2009/08/24/algorithms-convert-color-grayscale/
 
-    my $s = 0.15 * $r + 0.55 * $g + 0.30 * $b;
+    my $s = .30 * $r + .59 * $g + .11 * $b; 
+
+    # my $s = 0.15 * $r + 0.55 * $g + 0.30 * $b;
     return int($s);
 }

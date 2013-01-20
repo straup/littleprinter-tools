@@ -49,9 +49,6 @@ def dither_python(img):
         for x in range(img.size[0]):
 
             old = img.getpixel((x, y))
-
-            # print "x:%s y:%s p:%s" % (x, y, old)
-
             new = threshold[old]
             err = (old - new) >> 3 # divide by 8
             
