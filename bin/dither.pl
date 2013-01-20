@@ -39,17 +39,39 @@ sub dither {
 
 	for (my $x=0; $x < $width; $x++){
 
-	    # http://search.cpan.org/~tonyc/Imager-0.94/lib/Imager/Color.pm
-
 	    my $px = $im->getpixel(x => $x, y => $y, type => '8bit');
 	    my @c = $px->rgba();
 
 	    my $old = grayscale(@c);
 	    my $new = $threshold[$old];
 
+	    $im->setpixel(x => $x, y => $y, color => [ $new, $new, $new ]);
+
 	    my $err = ($old - $new) >> 3;
 
-	    $im->setpixel(x => $x, y => $y, color => [ $new, $new, $new ]);
+	    # This does not work...
+
+	    if (0){
+	    foreach my $nxy ([$x+1, $y], [$x-1, $y+1], [$x, $y+1], [$x+1, $y+1], [$x, $y+2]){
+
+		my $nx = $nxy->[0];
+		my $ny = $nxy->[1];
+
+		my $npx = $im->getpixel(x => $nx, y => $ny, type => '8bit');
+
+		if (! $npx){
+		    next;
+		}
+
+		my @nc = $npx->rgba();
+		
+		my $ngr = grayscale(@nc);
+		$ngr += $err;
+
+		$im->setpixel(x => $nx, y => $ny, color => [ $ngr, $ngr, $ngr ]);
+	    }
+	    }
+
 	}
     }
 
