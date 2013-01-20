@@ -37,6 +37,8 @@ sub dither {
 
 	for (my $x=0; $x < $width; $x++){
 
+	    # http://search.cpan.org/~tonyc/Imager-0.94/lib/Imager/Color.pm
+
 	    my $old = $im->getpixel(x => $x, y => $y);
 	    print $old->rgba() . "\n";
 	}
