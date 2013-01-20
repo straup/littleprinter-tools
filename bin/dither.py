@@ -20,10 +20,14 @@ def dither(infile, outfile):
 
     img = Image.open(infile)
 
+    img = dither_python(img)
+
+    """
     if has_atk:
         img = dither_atk(img)
     else:
         img = dither_python(img)
+    """
 
     img.save(outfile)
 
@@ -45,6 +49,9 @@ def dither_python(img):
         for x in range(img.size[0]):
 
             old = img.getpixel((x, y))
+
+            # print "x:%s y:%s p:%s" % (x, y, old)
+
             new = threshold[old]
             err = (old - new) >> 3 # divide by 8
             
